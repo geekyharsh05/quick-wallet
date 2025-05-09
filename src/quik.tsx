@@ -1,8 +1,8 @@
-import { List, Detail, ActionPanel, Action, Icon, Form, showToast, Toast, Clipboard, useNavigation } from "@raycast/api";
+import { List, Detail, ActionPanel, Action, Icon, Form, showToast, Toast, Clipboard, useNavigation, LocalStorage } from "@raycast/api";
 import { useSolanaBalance, useSplTokenBalances } from "./helpers";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const WALLET_TO_CHECK = "HgTShbbp6F2QqUE7wHLLQWaknmpCvsyUCDRdkRJVoM7P";
+const USER_WALLET_ADDRESS_KEY = "userSolanaWalletAddress";
 
 function formatTokenBalance(balance: number, decimals: number): string {
   return balance.toFixed(Math.min(decimals, 6));
@@ -126,29 +126,94 @@ function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: Se
         onBlur={() => validateField("amount")}
       />
       <Form.Separator />
-      <Form.Description text={`Sender (from your wallet): ${senderAddress}`} />
+      <Form.Description text={`Sender: ${senderAddress}`} />
       {mintAddress && <Form.Description text={`Token: ${tokenSymbol} (Mint: ${mintAddress})`} />}
       <Form.Description text={"Note: Ensure your Solana CLI is configured with the sender's keypair."} />
     </Form>
   );
 }
 
-export default function Command() {
-  const { balance: solBalance, isLoading: isLoadingSol, error: errorSol } = useSolanaBalance(WALLET_TO_CHECK);
-  const { tokenBalances, isLoading: isLoadingTokens, error: errorTokens } = useSplTokenBalances(WALLET_TO_CHECK);
+interface WalletSetupFormProps {
+  onWalletSet: (address: string) => void;
+}
+
+function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
+  const [address, setAddress] = useState<string>("");
+  const [error, setError] = useState<string | undefined>(undefined);
+
+  async function handleSubmit() {
+    if (!address) {
+      setError("Wallet address is required.");
+      return;
+    }
+    if (address.length < 32 || address.length > 44) {
+      setError("Invalid address length (must be 32-44 chars).");
+      return;
+    }
+    if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(address)) {
+      setError("Address contains invalid Base58 characters.");
+      return;
+    }
+    setError(undefined);
+
+    await LocalStorage.setItem(USER_WALLET_ADDRESS_KEY, address);
+    await showToast({
+      style: Toast.Style.Success,
+      title: "Wallet Address Saved",
+      message: "Your Solana wallet address has been stored.",
+    });
+    onWalletSet(address);
+  }
+
+  return (
+    <Form
+      actions={
+        <ActionPanel>
+          <Action.SubmitForm title="Save Wallet Address" onSubmit={handleSubmit} />
+        </ActionPanel>
+      }
+    >
+      <Form.Description text="Enter your Solana public wallet address to check balances and prepare transactions." />
+      <Form.TextField
+        id="walletAddress"
+        title="Solana Wallet Address"
+        placeholder="Enter public wallet address"
+        value={address}
+        error={error}
+        onChange={setAddress}
+        onBlur={() => {
+          if (!address) setError("Wallet address is required.");
+          else if (address.length > 0 && (address.length < 32 || address.length > 44)) setError("Invalid address length (32-44 chars).");
+          else if (address.length > 0 && !/^[1-9A-HJ-NP-Za-km-z]+$/.test(address)) setError("Invalid Base58 characters.");
+          else setError(undefined);
+        }}
+      />
+    </Form>
+  );
+}
+
+interface BalancesViewProps {
+  walletAddress: string;
+  onChangeWallet: () => Promise<void>;
+}
+
+function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
+  const { balance: solBalance, isLoading: isLoadingSol, error: errorSol } = useSolanaBalance(walletAddress);
+  const { tokenBalances, isLoading: isLoadingTokens, error: errorTokens } = useSplTokenBalances(walletAddress);
 
   const isLoading = isLoadingSol || isLoadingTokens;
   const combinedError = errorSol || errorTokens;
 
   if (combinedError) {
+    const errorMessage = typeof combinedError === 'string' ? combinedError : (combinedError as Error).message || 'Unknown error';
     return (
-      <Detail markdown={`# Error\n\nCould not fetch balances: ${combinedError}`}/>
+      <Detail markdown={`# Error\n\nCould not fetch balances: ${errorMessage}`}/>
     );
   }
 
   return (
     <List isLoading={isLoading} searchBarPlaceholder="Search tokens...">
-      <List.Section title="Native Balance">
+      <List.Section title="Native Balance (SOL)">
         {solBalance !== null && (
           <List.Item
             title="SOL"
@@ -162,7 +227,7 @@ export default function Command() {
                 />
                 <Action.CopyToClipboard
                   title="Copy Wallet Address"
-                  content={WALLET_TO_CHECK}
+                  content={walletAddress}
                 />
                 <Action.Push
                   title="Send Sol"
@@ -170,10 +235,16 @@ export default function Command() {
                   target={
                     <SendForm
                       tokenSymbol="SOL"
-                      senderAddress={WALLET_TO_CHECK}
-                      tokenDecimals={9} // SOL has 9 decimals
+                      senderAddress={walletAddress}
+                      tokenDecimals={9}
                     />
                   }
+                />
+                <Action
+                  title="Change Wallet Address"
+                  icon={Icon.Switch}
+                  onAction={onChangeWallet}
+                  shortcut={{ modifiers: ["cmd"], key: "w" }}
                 />
               </ActionPanel>
             }
@@ -199,7 +270,7 @@ export default function Command() {
                 />
                  <Action.CopyToClipboard
                   title="Copy Wallet Address"
-                  content={WALLET_TO_CHECK}
+                  content={walletAddress}
                 />
                 <Action.Push
                   title={`Send ${token.symbol}`}
@@ -208,7 +279,7 @@ export default function Command() {
                     <SendForm
                       tokenSymbol={token.symbol}
                       mintAddress={token.mintAddress}
-                      senderAddress={WALLET_TO_CHECK}
+                      senderAddress={walletAddress}
                       tokenDecimals={token.decimals}
                     />
                   }
@@ -219,8 +290,50 @@ export default function Command() {
         ))}
       </List.Section>
       {(!isLoading && solBalance === null && tokenBalances.length === 0 && !combinedError) && (
-         <List.EmptyView title="No Balances Found" description={`No SOL or token balances found for ${WALLET_TO_CHECK}.`}/>
+         <List.EmptyView title="No Balances Found" description={`No SOL or token balances found for ${walletAddress}. Ensure the address is correct and has activity.`}/>
       )}
     </List>
   );
+} 
+
+export default function Command() {
+  const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null);
+  const [isLoadingStoredWallet, setIsLoadingStoredWallet] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function loadWallet() {
+      try {
+        const storedWallet = await LocalStorage.getItem<string>(USER_WALLET_ADDRESS_KEY);
+        if (storedWallet) {
+          setUserWalletAddress(storedWallet);
+        }
+      } catch (e) {
+        console.error("Failed to load wallet from local storage", e);
+        await showToast({style: Toast.Style.Failure, title: "Error Loading Wallet", message: "Could not load saved wallet address."});
+      } finally {
+        setIsLoadingStoredWallet(false);
+      }
+    }
+    loadWallet();
+  }, []);
+
+  async function handleSetWallet(address: string) {
+    setUserWalletAddress(address);
+  }
+
+  async function handleChangeWallet() {
+    await LocalStorage.removeItem(USER_WALLET_ADDRESS_KEY);
+    setUserWalletAddress(null);
+    await showToast({ title: "Wallet Address Cleared", message: "Please enter a new wallet address."});
+  }
+
+  if (isLoadingStoredWallet) {
+    return <List isLoading={true} searchBarPlaceholder="Loading wallet..." />;
+  }
+
+  if (!userWalletAddress) {
+    return <WalletSetupForm onWalletSet={handleSetWallet} />;
+  }
+
+  return <BalancesView walletAddress={userWalletAddress} onChangeWallet={handleChangeWallet} />;
 } 
