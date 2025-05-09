@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { AccountLayout, getMint } from '@solana/spl-token';
+import { useState, useEffect } from "react";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { AccountLayout, getMint } from "@solana/spl-token";
 
 interface UseSolanaBalanceReturn {
   balance: number | null;
@@ -51,9 +51,9 @@ export function useSolanaBalance(walletAddress: string): UseSolanaBalanceReturn 
 
 // Predefined map for common token mints to symbols and names
 // Add more tokens here as needed
-const KNOWN_TOKENS_MAP: Record<string, { symbol: string; name: string, decimals?: number }> = {
-  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": { symbol: "USDC", name: "USD Coin", decimals: 6 },
-  "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn": { symbol: "JitoSOL", name: "Jito Staked SOL", decimals: 9 },
+const KNOWN_TOKENS_MAP: Record<string, { symbol: string; name: string; decimals?: number }> = {
+  EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: { symbol: "USDC", name: "USD Coin", decimals: 6 },
+  J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn: { symbol: "JitoSOL", name: "Jito Staked SOL", decimals: 9 },
   // Add other known tokens here, e.g., mSOL, BONK, etc.
 };
 
@@ -103,24 +103,26 @@ export function useSplTokenBalances(walletAddress: string): UseSplTokenBalancesR
 
           const tokenInfo = KNOWN_TOKENS_MAP[mintAddress];
           let decimals = tokenInfo?.decimals;
-          
+
           if (decimals === undefined) {
             try {
               const mintData = await getMint(connection, new PublicKey(mintAddress));
               decimals = mintData.decimals;
             } catch (e) {
               console.warn(`Could not fetch decimals for mint ${mintAddress}:`, e);
-              continue; 
+              continue;
             }
           }
-          
+
           const uiAmount = accountInfo.amount ? Number(accountInfo.amount) / Math.pow(10, decimals) : 0;
 
           if (uiAmount > 0) {
-             fetchedBalances.push({
+            fetchedBalances.push({
               mintAddress,
               uiAmount,
-              symbol: tokenInfo?.symbol || mintAddress.substring(0, 4) + "..." + mintAddress.substring(mintAddress.length - 4),
+              symbol:
+                tokenInfo?.symbol ||
+                mintAddress.substring(0, 4) + "..." + mintAddress.substring(mintAddress.length - 4),
               name: tokenInfo?.name || "Unknown Token",
               decimals,
             });

@@ -1,4 +1,5 @@
 {
+  "version": "1.0.2",
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "quikwallet",
   "title": "QuikWallet",
@@ -13,8 +14,8 @@
   "commands": [
     {
       "name": "quik",
-      "title": "quik",
-      "description": "",
+      "title": "Quik",
+      "description": "Utility helper for solana",
       "mode": "view"
     }
   ],
@@ -39,7 +40,6 @@
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",
     "lint": "ray lint",
-    "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
     "publish": "npx @raycast/api@latest publish"
   },
   "packageManager": "pnpm@10.7.0+sha512.6b865ad4b62a1d9842b61d674a393903b871d9244954f652b8842c2b553c72176b278f64c463e52d40fff8aba385c235c8c9ecf5cc7de4fd78b8bb6d49633ab6"

@@ -1,4 +1,16 @@
-import { List, Detail, ActionPanel, Action, Icon, Form, showToast, Toast, Clipboard, useNavigation, LocalStorage } from "@raycast/api";
+import {
+  List,
+  Detail,
+  ActionPanel,
+  Action,
+  Icon,
+  Form,
+  showToast,
+  Toast,
+  Clipboard,
+  useNavigation,
+  LocalStorage,
+} from "@raycast/api";
 import { useSolanaBalance, useSplTokenBalances } from "./helpers";
 import { useState, useEffect } from "react";
 
@@ -50,7 +62,7 @@ function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: Se
           newErrors.amount = "Amount must be a positive number.";
           isValid = false;
         } else {
-          const parts = amount.split('.');
+          const parts = amount.split(".");
           if (parts.length > 1 && parts[1].length > tokenDecimals) {
             newErrors.amount = `Amount cannot have more than ${tokenDecimals} decimal places for ${tokenSymbol}.`;
             isValid = false;
@@ -183,8 +195,10 @@ function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
         onChange={setAddress}
         onBlur={() => {
           if (!address) setError("Wallet address is required.");
-          else if (address.length > 0 && (address.length < 32 || address.length > 44)) setError("Invalid address length (32-44 chars).");
-          else if (address.length > 0 && !/^[1-9A-HJ-NP-Za-km-z]+$/.test(address)) setError("Invalid Base58 characters.");
+          else if (address.length > 0 && (address.length < 32 || address.length > 44))
+            setError("Invalid address length (32-44 chars).");
+          else if (address.length > 0 && !/^[1-9A-HJ-NP-Za-km-z]+$/.test(address))
+            setError("Invalid Base58 characters.");
           else setError(undefined);
         }}
       />
@@ -205,10 +219,9 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
   const combinedError = errorSol || errorTokens;
 
   if (combinedError) {
-    const errorMessage = typeof combinedError === 'string' ? combinedError : (combinedError as Error).message || 'Unknown error';
-    return (
-      <Detail markdown={`# Error\n\nCould not fetch balances: ${errorMessage}`}/>
-    );
+    const errorMessage =
+      typeof combinedError === "string" ? combinedError : (combinedError as Error).message || "Unknown error";
+    return <Detail markdown={`# Error\n\nCould not fetch balances: ${errorMessage}`} />;
   }
 
   return (
@@ -221,24 +234,12 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
             accessories={[{ text: `${formatTokenBalance(solBalance, 9)} SOL` }]}
             actions={
               <ActionPanel>
-                <Action.CopyToClipboard
-                  title="Copy Balance"
-                  content={solBalance.toString()}
-                />
-                <Action.CopyToClipboard
-                  title="Copy Wallet Address"
-                  content={walletAddress}
-                />
+                <Action.CopyToClipboard title="Copy Balance" content={solBalance.toString()} />
+                <Action.CopyToClipboard title="Copy Wallet Address" content={walletAddress} />
                 <Action.Push
                   title="Send Sol"
                   icon={Icon.Upload}
-                  target={
-                    <SendForm
-                      tokenSymbol="SOL"
-                      senderAddress={walletAddress}
-                      tokenDecimals={9}
-                    />
-                  }
+                  target={<SendForm tokenSymbol="SOL" senderAddress={walletAddress} tokenDecimals={9} />}
                 />
                 <Action
                   title="Change Wallet Address"
@@ -260,18 +261,9 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
             accessories={[{ text: `${formatTokenBalance(token.uiAmount, token.decimals)} ${token.symbol}` }]}
             actions={
               <ActionPanel>
-                <Action.CopyToClipboard
-                  title={`Copy ${token.symbol} Balance`}
-                  content={token.uiAmount.toString()}
-                />
-                <Action.CopyToClipboard
-                  title="Copy Token Mint Address"
-                  content={token.mintAddress}
-                />
-                 <Action.CopyToClipboard
-                  title="Copy Wallet Address"
-                  content={walletAddress}
-                />
+                <Action.CopyToClipboard title={`Copy ${token.symbol} Balance`} content={token.uiAmount.toString()} />
+                <Action.CopyToClipboard title="Copy Token Mint Address" content={token.mintAddress} />
+                <Action.CopyToClipboard title="Copy Wallet Address" content={walletAddress} />
                 <Action.Push
                   title={`Send ${token.symbol}`}
                   icon={Icon.Upload}
@@ -289,12 +281,15 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
           />
         ))}
       </List.Section>
-      {(!isLoading && solBalance === null && tokenBalances.length === 0 && !combinedError) && (
-         <List.EmptyView title="No Balances Found" description={`No SOL or token balances found for ${walletAddress}. Ensure the address is correct and has activity.`}/>
+      {!isLoading && solBalance === null && tokenBalances.length === 0 && !combinedError && (
+        <List.EmptyView
+          title="No Balances Found"
+          description={`No SOL or token balances found for ${walletAddress}. Ensure the address is correct and has activity.`}
+        />
       )}
     </List>
   );
-} 
+}
 
 export default function Command() {
   const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null);
@@ -309,7 +304,11 @@ export default function Command() {
         }
       } catch (e) {
         console.error("Failed to load wallet from local storage", e);
-        await showToast({style: Toast.Style.Failure, title: "Error Loading Wallet", message: "Could not load saved wallet address."});
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Error Loading Wallet",
+          message: "Could not load saved wallet address.",
+        });
       } finally {
         setIsLoadingStoredWallet(false);
       }
@@ -324,7 +323,7 @@ export default function Command() {
   async function handleChangeWallet() {
     await LocalStorage.removeItem(USER_WALLET_ADDRESS_KEY);
     setUserWalletAddress(null);
-    await showToast({ title: "Wallet Address Cleared", message: "Please enter a new wallet address."});
+    await showToast({ title: "Wallet Address Cleared", message: "Please enter a new wallet address." });
   }
 
   if (isLoadingStoredWallet) {
@@ -336,4 +335,4 @@ export default function Command() {
   }
 
   return <BalancesView walletAddress={userWalletAddress} onChangeWallet={handleChangeWallet} />;
-} 
+}
