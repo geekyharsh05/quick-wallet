@@ -14,11 +14,7 @@ import {
 import { showFailureToast } from "@raycast/utils";
 import { useSolanaBalance, useSplTokenBalances } from "./helpers";
 import { useState, useEffect } from "react";
-import {
-  BalancesViewProps,
-  SendFormProps,
-  WalletSetupFormProps,
-} from "./types";
+import { BalancesViewProps, SendFormProps, WalletSetupFormProps } from "./types";
 
 const USER_WALLET_ADDRESS_KEY = "userSolanaWalletAddress";
 
@@ -26,12 +22,7 @@ function formatTokenBalance(balance: number, decimals: number): string {
   return balance.toFixed(Math.min(decimals, 6));
 }
 
-function SendForm({
-  tokenSymbol,
-  mintAddress,
-  senderAddress,
-  tokenDecimals,
-}: SendFormProps) {
+function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: SendFormProps) {
   const navigation = useNavigation();
   const [recipientAddress, setRecipientAddress] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -119,17 +110,11 @@ function SendForm({
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm
-            title={`Copy Send ${tokenSymbol} Command`}
-            onSubmit={handleSubmit}
-            icon={Icon.Terminal}
-          />
+          <Action.SubmitForm title={`Copy Send ${tokenSymbol} Command`} onSubmit={handleSubmit} icon={Icon.Terminal} />
         </ActionPanel>
       }
     >
-      <Form.Description
-        text={`Prepare a CLI command to send ${tokenSymbol}. Paste it into your terminal.`}
-      />
+      <Form.Description text={`Prepare a CLI command to send ${tokenSymbol}. Paste it into your terminal.`} />
       <Form.TextField
         id="recipientAddress"
         title="Recipient Address"
@@ -150,16 +135,8 @@ function SendForm({
       />
       <Form.Separator />
       <Form.Description text={`Sender: ${senderAddress}`} />
-      {mintAddress && (
-        <Form.Description
-          text={`Token: ${tokenSymbol} (Mint: ${mintAddress})`}
-        />
-      )}
-      <Form.Description
-        text={
-          "Note: Ensure your Solana CLI is configured with the sender's keypair."
-        }
-      />
+      {mintAddress && <Form.Description text={`Token: ${tokenSymbol} (Mint: ${mintAddress})`} />}
+      <Form.Description text={"Note: Ensure your Solana CLI is configured with the sender's keypair."} />
     </Form>
   );
 }
@@ -196,10 +173,7 @@ function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm
-            title="Save Wallet Address"
-            onSubmit={handleSubmit}
-          />
+          <Action.SubmitForm title="Save Wallet Address" onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
@@ -213,15 +187,9 @@ function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
         onChange={setAddress}
         onBlur={() => {
           if (!address) setError("Wallet address is required.");
-          else if (
-            address.length > 0 &&
-            (address.length < 32 || address.length > 44)
-          )
+          else if (address.length > 0 && (address.length < 32 || address.length > 44))
             setError("Invalid address length (32-44 chars).");
-          else if (
-            address.length > 0 &&
-            !/^[1-9A-HJ-NP-Za-km-z]+$/.test(address)
-          )
+          else if (address.length > 0 && !/^[1-9A-HJ-NP-Za-km-z]+$/.test(address))
             setError("Invalid Base58 characters.");
           else setError(undefined);
         }}
@@ -231,30 +199,16 @@ function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
 }
 
 function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
-  const {
-    balance: solBalance,
-    isLoading: isLoadingSol,
-    error: errorSol,
-  } = useSolanaBalance(walletAddress);
-  const {
-    tokenBalances,
-    isLoading: isLoadingTokens,
-    error: errorTokens,
-  } = useSplTokenBalances(walletAddress);
+  const { balance: solBalance, isLoading: isLoadingSol, error: errorSol } = useSolanaBalance(walletAddress);
+  const { tokenBalances, isLoading: isLoadingTokens, error: errorTokens } = useSplTokenBalances(walletAddress);
 
   const isLoading = isLoadingSol || isLoadingTokens;
   const combinedError = errorSol || errorTokens;
 
   if (combinedError) {
     const errorMessage =
-      typeof combinedError === "string"
-        ? combinedError
-        : (combinedError as Error).message || "Unknown error";
-    return (
-      <Detail
-        markdown={`# Error\n\nCould not fetch balances: ${errorMessage}`}
-      />
-    );
+      typeof combinedError === "string" ? combinedError : (combinedError as Error).message || "Unknown error";
+    return <Detail markdown={`# Error\n\nCould not fetch balances: ${errorMessage}`} />;
   }
 
   return (
@@ -271,24 +225,12 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
             ]}
             actions={
               <ActionPanel>
-                <Action.CopyToClipboard
-                  title="Copy Balance"
-                  content={solBalance.toString()}
-                />
-                <Action.CopyToClipboard
-                  title="Copy Wallet Address"
-                  content={walletAddress}
-                />
+                <Action.CopyToClipboard title="Copy Balance" content={solBalance.toString()} />
+                <Action.CopyToClipboard title="Copy Wallet Address" content={walletAddress} />
                 <Action.Push
                   title="Send Sol"
                   icon={Icon.Upload}
-                  target={
-                    <SendForm
-                      tokenSymbol="SOL"
-                      senderAddress={walletAddress}
-                      tokenDecimals={9}
-                    />
-                  }
+                  target={<SendForm tokenSymbol="SOL" senderAddress={walletAddress} tokenDecimals={9} />}
                 />
                 <Action
                   title="Change Wallet Address"
@@ -314,18 +256,9 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
             ]}
             actions={
               <ActionPanel>
-                <Action.CopyToClipboard
-                  title={`Copy ${token.symbol} Balance`}
-                  content={token.uiAmount.toString()}
-                />
-                <Action.CopyToClipboard
-                  title="Copy Token Mint Address"
-                  content={token.mintAddress}
-                />
-                <Action.CopyToClipboard
-                  title="Copy Wallet Address"
-                  content={walletAddress}
-                />
+                <Action.CopyToClipboard title={`Copy ${token.symbol} Balance`} content={token.uiAmount.toString()} />
+                <Action.CopyToClipboard title="Copy Token Mint Address" content={token.mintAddress} />
+                <Action.CopyToClipboard title="Copy Wallet Address" content={walletAddress} />
                 <Action.Push
                   title={`Send ${token.symbol}`}
                   icon={Icon.Upload}
@@ -343,32 +276,24 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
           />
         ))}
       </List.Section>
-      {!isLoading &&
-        tokenBalances.length === 0 &&
-        solBalance === null &&
-        !combinedError && (
-          <List.EmptyView
-            title="No Balances Found"
-            description={`No SOL or token balances found for ${walletAddress}. Ensure the address is correct and has activity.`}
-          />
-        )}
+      {!isLoading && tokenBalances.length === 0 && solBalance === null && !combinedError && (
+        <List.EmptyView
+          title="No Balances Found"
+          description={`No SOL or token balances found for ${walletAddress}. Ensure the address is correct and has activity.`}
+        />
+      )}
     </List>
   );
 }
 
 export default function Command() {
-  const [userWalletAddress, setUserWalletAddress] = useState<string | null>(
-    null
-  );
-  const [isLoadingStoredWallet, setIsLoadingStoredWallet] =
-    useState<boolean>(true);
+  const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null);
+  const [isLoadingStoredWallet, setIsLoadingStoredWallet] = useState<boolean>(true);
 
   useEffect(() => {
     async function loadWallet() {
       try {
-        const storedWallet = await LocalStorage.getItem<string>(
-          USER_WALLET_ADDRESS_KEY
-        );
+        const storedWallet = await LocalStorage.getItem<string>(USER_WALLET_ADDRESS_KEY);
         if (storedWallet) {
           setUserWalletAddress(storedWallet);
         }
@@ -404,10 +329,5 @@ export default function Command() {
     return <WalletSetupForm onWalletSet={handleSetWallet} />;
   }
 
-  return (
-    <BalancesView
-      walletAddress={userWalletAddress}
-      onChangeWallet={handleChangeWallet}
-    />
-  );
+  return <BalancesView walletAddress={userWalletAddress} onChangeWallet={handleChangeWallet} />;
 }
