@@ -21,6 +21,7 @@
   "dependencies": {
     "@raycast/api": "^1.98.0",
     "@raycast/utils": "^1.17.0",
+    "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.2",
     "got": "^14.4.7"
   },
