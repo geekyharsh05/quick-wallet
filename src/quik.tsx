@@ -11,8 +11,14 @@ import {
   useNavigation,
   LocalStorage,
 } from "@raycast/api";
+import { showFailureToast } from "@raycast/utils";
 import { useSolanaBalance, useSplTokenBalances } from "./helpers";
 import { useState, useEffect } from "react";
+import {
+  BalancesViewProps,
+  SendFormProps,
+  WalletSetupFormProps,
+} from "./types";
 
 const USER_WALLET_ADDRESS_KEY = "userSolanaWalletAddress";
 
@@ -20,18 +26,19 @@ function formatTokenBalance(balance: number, decimals: number): string {
   return balance.toFixed(Math.min(decimals, 6));
 }
 
-interface SendFormProps {
-  tokenSymbol: string;
-  tokenDecimals: number;
-  mintAddress?: string;
-  senderAddress: string;
-}
-
-function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: SendFormProps) {
+function SendForm({
+  tokenSymbol,
+  mintAddress,
+  senderAddress,
+  tokenDecimals,
+}: SendFormProps) {
   const navigation = useNavigation();
   const [recipientAddress, setRecipientAddress] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
-  const [errors, setErrors] = useState<{ recipient?: string; amount?: string }>({});
+  const [errors, setErrors] = useState<{
+    recipient?: string;
+    amount?: string;
+  }>({});
 
   function validateField(fieldName: "recipient" | "amount"): boolean {
     let isValid = true;
@@ -84,10 +91,8 @@ function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: Se
 
   async function handleSubmit() {
     if (!validateAllFields()) {
-      await showToast({
-        style: Toast.Style.Failure,
+      await showFailureToast(new Error("Please check the form for errors."), {
         title: "Validation Error",
-        message: "Please check the form for errors.",
       });
       return;
     }
@@ -114,11 +119,17 @@ function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: Se
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title={`Copy Send ${tokenSymbol} Command`} onSubmit={handleSubmit} icon={Icon.Terminal} />
+          <Action.SubmitForm
+            title={`Copy Send ${tokenSymbol} Command`}
+            onSubmit={handleSubmit}
+            icon={Icon.Terminal}
+          />
         </ActionPanel>
       }
     >
-      <Form.Description text={`Prepare a CLI command to send ${tokenSymbol}. Paste it into your terminal.`} />
+      <Form.Description
+        text={`Prepare a CLI command to send ${tokenSymbol}. Paste it into your terminal.`}
+      />
       <Form.TextField
         id="recipientAddress"
         title="Recipient Address"
@@ -139,14 +150,18 @@ function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: Se
       />
       <Form.Separator />
       <Form.Description text={`Sender: ${senderAddress}`} />
-      {mintAddress && <Form.Description text={`Token: ${tokenSymbol} (Mint: ${mintAddress})`} />}
-      <Form.Description text={"Note: Ensure your Solana CLI is configured with the sender's keypair."} />
+      {mintAddress && (
+        <Form.Description
+          text={`Token: ${tokenSymbol} (Mint: ${mintAddress})`}
+        />
+      )}
+      <Form.Description
+        text={
+          "Note: Ensure your Solana CLI is configured with the sender's keypair."
+        }
+      />
     </Form>
   );
-}
-
-interface WalletSetupFormProps {
-  onWalletSet: (address: string) => void;
 }
 
 function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
@@ -181,7 +196,10 @@ function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Save Wallet Address" onSubmit={handleSubmit} />
+          <Action.SubmitForm
+            title="Save Wallet Address"
+            onSubmit={handleSubmit}
+          />
         </ActionPanel>
       }
     >
@@ -195,9 +213,15 @@ function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
         onChange={setAddress}
         onBlur={() => {
           if (!address) setError("Wallet address is required.");
-          else if (address.length > 0 && (address.length < 32 || address.length > 44))
+          else if (
+            address.length > 0 &&
+            (address.length < 32 || address.length > 44)
+          )
             setError("Invalid address length (32-44 chars).");
-          else if (address.length > 0 && !/^[1-9A-HJ-NP-Za-km-z]+$/.test(address))
+          else if (
+            address.length > 0 &&
+            !/^[1-9A-HJ-NP-Za-km-z]+$/.test(address)
+          )
             setError("Invalid Base58 characters.");
           else setError(undefined);
         }}
@@ -206,22 +230,31 @@ function WalletSetupForm({ onWalletSet }: WalletSetupFormProps) {
   );
 }
 
-interface BalancesViewProps {
-  walletAddress: string;
-  onChangeWallet: () => Promise<void>;
-}
-
 function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
-  const { balance: solBalance, isLoading: isLoadingSol, error: errorSol } = useSolanaBalance(walletAddress);
-  const { tokenBalances, isLoading: isLoadingTokens, error: errorTokens } = useSplTokenBalances(walletAddress);
+  const {
+    balance: solBalance,
+    isLoading: isLoadingSol,
+    error: errorSol,
+  } = useSolanaBalance(walletAddress);
+  const {
+    tokenBalances,
+    isLoading: isLoadingTokens,
+    error: errorTokens,
+  } = useSplTokenBalances(walletAddress);
 
   const isLoading = isLoadingSol || isLoadingTokens;
   const combinedError = errorSol || errorTokens;
 
   if (combinedError) {
     const errorMessage =
-      typeof combinedError === "string" ? combinedError : (combinedError as Error).message || "Unknown error";
-    return <Detail markdown={`# Error\n\nCould not fetch balances: ${errorMessage}`} />;
+      typeof combinedError === "string"
+        ? combinedError
+        : (combinedError as Error).message || "Unknown error";
+    return (
+      <Detail
+        markdown={`# Error\n\nCould not fetch balances: ${errorMessage}`}
+      />
+    );
   }
 
   return (
@@ -231,21 +264,37 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
           <List.Item
             title="SOL"
             subtitle="Solana"
-            accessories={[{ text: `${formatTokenBalance(solBalance, 9)} SOL` }]}
+            accessories={[
+              {
+                text: `${formatTokenBalance(solBalance, 9)} SOL`,
+              },
+            ]}
             actions={
               <ActionPanel>
-                <Action.CopyToClipboard title="Copy Balance" content={solBalance.toString()} />
-                <Action.CopyToClipboard title="Copy Wallet Address" content={walletAddress} />
+                <Action.CopyToClipboard
+                  title="Copy Balance"
+                  content={solBalance.toString()}
+                />
+                <Action.CopyToClipboard
+                  title="Copy Wallet Address"
+                  content={walletAddress}
+                />
                 <Action.Push
                   title="Send Sol"
                   icon={Icon.Upload}
-                  target={<SendForm tokenSymbol="SOL" senderAddress={walletAddress} tokenDecimals={9} />}
+                  target={
+                    <SendForm
+                      tokenSymbol="SOL"
+                      senderAddress={walletAddress}
+                      tokenDecimals={9}
+                    />
+                  }
                 />
                 <Action
                   title="Change Wallet Address"
                   icon={Icon.Switch}
                   onAction={onChangeWallet}
-                  shortcut={{ modifiers: ["cmd"], key: "w" }}
+                  shortcut={{ modifiers: ["opt"], key: "w" }}
                 />
               </ActionPanel>
             }
@@ -258,12 +307,25 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
             key={token.mintAddress}
             title={token.symbol}
             subtitle={token.name}
-            accessories={[{ text: `${formatTokenBalance(token.uiAmount, token.decimals)} ${token.symbol}` }]}
+            accessories={[
+              {
+                text: `${formatTokenBalance(token.uiAmount, token.decimals)} ${token.symbol}`,
+              },
+            ]}
             actions={
               <ActionPanel>
-                <Action.CopyToClipboard title={`Copy ${token.symbol} Balance`} content={token.uiAmount.toString()} />
-                <Action.CopyToClipboard title="Copy Token Mint Address" content={token.mintAddress} />
-                <Action.CopyToClipboard title="Copy Wallet Address" content={walletAddress} />
+                <Action.CopyToClipboard
+                  title={`Copy ${token.symbol} Balance`}
+                  content={token.uiAmount.toString()}
+                />
+                <Action.CopyToClipboard
+                  title="Copy Token Mint Address"
+                  content={token.mintAddress}
+                />
+                <Action.CopyToClipboard
+                  title="Copy Wallet Address"
+                  content={walletAddress}
+                />
                 <Action.Push
                   title={`Send ${token.symbol}`}
                   icon={Icon.Upload}
@@ -281,34 +343,38 @@ function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
           />
         ))}
       </List.Section>
-      {!isLoading && solBalance === null && tokenBalances.length === 0 && !combinedError && (
-        <List.EmptyView
-          title="No Balances Found"
-          description={`No SOL or token balances found for ${walletAddress}. Ensure the address is correct and has activity.`}
-        />
-      )}
+      {!isLoading &&
+        tokenBalances.length === 0 &&
+        solBalance === null &&
+        !combinedError && (
+          <List.EmptyView
+            title="No Balances Found"
+            description={`No SOL or token balances found for ${walletAddress}. Ensure the address is correct and has activity.`}
+          />
+        )}
     </List>
   );
 }
 
 export default function Command() {
-  const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null);
-  const [isLoadingStoredWallet, setIsLoadingStoredWallet] = useState<boolean>(true);
+  const [userWalletAddress, setUserWalletAddress] = useState<string | null>(
+    null
+  );
+  const [isLoadingStoredWallet, setIsLoadingStoredWallet] =
+    useState<boolean>(true);
 
   useEffect(() => {
     async function loadWallet() {
       try {
-        const storedWallet = await LocalStorage.getItem<string>(USER_WALLET_ADDRESS_KEY);
+        const storedWallet = await LocalStorage.getItem<string>(
+          USER_WALLET_ADDRESS_KEY
+        );
         if (storedWallet) {
           setUserWalletAddress(storedWallet);
         }
       } catch (e) {
         console.error("Failed to load wallet from local storage", e);
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Error Loading Wallet",
-          message: "Could not load saved wallet address.",
-        });
+        await showFailureToast(e, { title: "Error Loading Wallet" });
       } finally {
         setIsLoadingStoredWallet(false);
       }
@@ -316,14 +382,18 @@ export default function Command() {
     loadWallet();
   }, []);
 
-  async function handleSetWallet(address: string) {
+  function handleSetWallet(address: string) {
     setUserWalletAddress(address);
   }
 
   async function handleChangeWallet() {
     await LocalStorage.removeItem(USER_WALLET_ADDRESS_KEY);
     setUserWalletAddress(null);
-    await showToast({ title: "Wallet Address Cleared", message: "Please enter a new wallet address." });
+    await showToast({
+      style: Toast.Style.Success,
+      title: "Wallet Address Cleared",
+      message: "Please enter a new wallet address.",
+    });
   }
 
   if (isLoadingStoredWallet) {
@@ -334,5 +404,10 @@ export default function Command() {
     return <WalletSetupForm onWalletSet={handleSetWallet} />;
   }
 
-  return <BalancesView walletAddress={userWalletAddress} onChangeWallet={handleChangeWallet} />;
+  return (
+    <BalancesView
+      walletAddress={userWalletAddress}
+      onChangeWallet={handleChangeWallet}
+    />
+  );
 }
