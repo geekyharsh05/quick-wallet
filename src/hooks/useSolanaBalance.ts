@@ -4,7 +4,7 @@ import { UseSolanaBalanceReturn } from "../types";
 
 export function useSolanaBalance(walletAddress: string): UseSolanaBalanceReturn {
   const queryClient = useQueryClient();
-  
+
   const {
     data: balance,
     isLoading,
@@ -26,7 +26,6 @@ export function useSolanaBalance(walletAddress: string): UseSolanaBalanceReturn 
   });
 
   const refetch = async () => {
-    // Optimistically update the cache
     const previousData = queryClient.getQueryData<number>(["solanaBalance", walletAddress]);
     if (previousData !== undefined) {
       queryClient.setQueryData(["solanaBalance", walletAddress], previousData);
@@ -38,6 +37,6 @@ export function useSolanaBalance(walletAddress: string): UseSolanaBalanceReturn 
     balance: balance ?? null,
     isLoading,
     error: error ? error.message : null,
-    refetch
-  };  
-} 
+    refetch,
+  };
+}
