@@ -1,9 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { fetchSolanaBalance } from "../services/solana";
 import { UseSolanaBalanceReturn } from "../types";
+import { useGlobalQueryClient } from ".";
 
 export function useSolanaBalance(walletAddress: string): UseSolanaBalanceReturn {
-  const queryClient = useQueryClient();
+  const queryClient = useGlobalQueryClient();
 
   const {
     data: balance,
