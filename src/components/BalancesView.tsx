@@ -4,7 +4,7 @@ import { useSolanaBalance, useSplTokenBalances, useSolanaPrice, useGlobalQueryCl
 import { useTokenPrices } from "../hooks/useTokenPrices";
 import { formatTokenBalance, getTokenIcon } from "../utils/formatters";
 import { SendForm } from "./SendForm";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CommonActionPanelItems } from "./common/ActionPanelItems";
 
 function formatTimeAgo(date: Date): string {
@@ -35,6 +35,24 @@ export function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProp
 
   const isLoading = isLoadingSol || isLoadingTokens || isLoadingPrice || isLoadingTokenPrices;
   const combinedError = errorSol || errorTokens;
+
+  // Calculate total portfolio value
+  const totalPortfolioValue = useMemo(() => {
+    let total = 0;
+
+    // Add SOL value
+    if (solBalance !== null) {
+      total += solBalance * solPrice;
+    }
+
+    // Add token values
+    tokenBalances.forEach((token) => {
+      const { price } = tokenPrices[token.mintAddress] || { price: 0 };
+      total += token.uiAmount * price;
+    });
+
+    return total;
+  }, [solBalance, solPrice, tokenBalances, tokenPrices]);
 
   const handleRefresh = async () => {
     setLastRefreshed(new Date());
@@ -68,9 +86,10 @@ export function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProp
   }
 
   const refreshStatus = isLoading ? "Refreshing..." : `Last updated ${formatTimeAgo(lastRefreshed)}`;
+  const navigationTitle = `Total: $${formatTokenBalance(totalPortfolioValue, 2)} • ${refreshStatus}`;
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="Search tokens..." navigationTitle={refreshStatus}>
+    <List isLoading={isLoading} searchBarPlaceholder="Search tokens..." navigationTitle={navigationTitle}>
       <List.Section title="Native Balance (SOL)" subtitle={refreshStatus}>
         {solBalance !== null && (
           <List.Item
