@@ -1,10 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { KNOWN_TOKENS } from "../constants";
-
-interface TokenPriceData {
-  price: number;
-  priceChange24h: number;
-}
+import { TokenPriceData } from "../types";
 
 async function fetchTokenPrice(mintAddress: string): Promise<TokenPriceData> {
   const tokenInfo = KNOWN_TOKENS[mintAddress];
@@ -59,12 +55,11 @@ export function useTokenPrice(mintAddress: string) {
     queryKey: ["tokenPrice", mintAddress],
     queryFn: () => fetchTokenPrice(mintAddress),
     enabled: !!mintAddress && !!coingeckoId,
-    refetchInterval: 10000, // Refetch every 10 seconds
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    refetchInterval: 60000, // Refetch every 1 minute
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     refetchOnReconnect: true,
-    staleTime: 5000, // Consider data stale after 5 seconds
     gcTime: 300000,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

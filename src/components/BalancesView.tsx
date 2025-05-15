@@ -4,7 +4,7 @@ import { useSolanaBalance, useSplTokenBalances, useSolanaPrice, useGlobalQueryCl
 import { useTokenPrices } from "../hooks/useTokenPrices";
 import { formatTokenBalance, getTokenIcon } from "../utils/formatters";
 import { SendForm } from "./SendForm";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { CommonActionPanelItems } from "./common/ActionPanelItems";
 
 function formatTimeAgo(date: Date): string {
@@ -32,6 +32,30 @@ export function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProp
   const { price: solPrice, priceChange24h, isLoading: isLoadingPrice } = useSolanaPrice();
   const { tokenPrices, isLoading: isLoadingTokenPrices } = useTokenPrices(tokenBalances);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  // Use a ref to track if this is the first load
+  const isFirstLoadRef = useRef(true);
+  // Force UI update every minute
+  const [, setForceUpdate] = useState(0);
+
+  // Update the time display every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setForceUpdate((prev) => prev + 1);
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Update lastRefreshed only on initial data load or manual refresh
+  useEffect(() => {
+    // Only update lastRefreshed on first successful load
+    if (!isLoadingSol && !isLoadingTokens && !isLoadingPrice && !isLoadingTokenPrices) {
+      if (isFirstLoadRef.current === true) {
+        isFirstLoadRef.current = false;
+        setLastRefreshed(new Date());
+      }
+    }
+  }, [isLoadingSol, isLoadingTokens, isLoadingPrice, isLoadingTokenPrices]);
 
   const isLoading = isLoadingSol || isLoadingTokens || isLoadingPrice || isLoadingTokenPrices;
   const combinedError = errorSol || errorTokens;
