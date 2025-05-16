@@ -30,17 +30,9 @@ export default function Command() {
     setWalletAddress(null);
   };
 
-  if (isLoading) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <WalletSetupForm onWalletSet={setWalletAddress} />
-      </QueryClientProvider>
-    );
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
-      {!walletAddress ? (
+      {isLoading || !walletAddress ? (
         <WalletSetupForm onWalletSet={setWalletAddress} />
       ) : (
         <BalancesView walletAddress={walletAddress} onChangeWallet={handleChangeWallet} />

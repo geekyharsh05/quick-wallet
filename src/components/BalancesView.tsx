@@ -9,11 +9,10 @@ import { CommonActionPanelItems } from "./common/ActionPanelItems";
 
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
   if (seconds < 60) return "just now";
-  if (seconds < 120) return "1 minute ago";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-  if (seconds < 7200) return "1 hour ago";
-  return `${Math.floor(seconds / 3600)} hours ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} minute${Math.floor(seconds / 60) === 1 ? "" : "s"} ago`;
+  return `${Math.floor(seconds / 3600)} hour${Math.floor(seconds / 3600) === 1 ? "" : "s"} ago`;
 }
 
 function getPriceChangeIcon(priceChange: number): { source: Icon; tintColor: Color } | undefined {

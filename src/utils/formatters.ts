@@ -47,24 +47,6 @@ export interface ValidationResult {
   error?: string;
 }
 
-export function validateFormField<T>(
-  value: T,
-  validator: (value: T) => ValidationResult,
-  errors: Record<string, string | undefined>,
-  fieldName: string,
-): boolean {
-  const { isValid, error } = validator(value);
-  const newErrors = { ...errors };
-
-  if (!isValid) {
-    newErrors[fieldName] = error;
-  } else {
-    delete newErrors[fieldName];
-  }
-
-  return isValid;
-}
-
 export function getTokenIcon(symbol: string): { source: Icon; tintColor?: Color } {
   switch (symbol.toUpperCase()) {
     case "SOL":
