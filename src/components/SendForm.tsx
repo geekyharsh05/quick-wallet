@@ -2,7 +2,7 @@ import { Form, ActionPanel, Action, Icon, showToast, Toast, Clipboard, useNaviga
 import { showFailureToast } from "@raycast/utils";
 import { useState } from "react";
 import { SendFormProps } from "../types";
-import { validateSolanaAddress, validateTokenAmount, validateFormField } from "../utils/formatters";
+import { validateSolanaAddress, validateTokenAmount } from "../utils/formatters";
 
 export function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimals }: SendFormProps) {
   const navigation = useNavigation();
@@ -14,15 +14,21 @@ export function SendForm({ tokenSymbol, mintAddress, senderAddress, tokenDecimal
   }>({});
 
   function validateField(fieldName: "recipient" | "amount"): boolean {
+    let valid: boolean;
+    const newErrors = { ...errors };
+
     if (fieldName === "recipient") {
-      return validateFormField(recipientAddress, validateSolanaAddress, errors, "recipient");
+      const result = validateSolanaAddress(recipientAddress);
+      valid = result.isValid;
+      newErrors.recipient = result.isValid ? undefined : result.error;
+    } else {
+      const result = validateTokenAmount(amount, tokenDecimals, tokenSymbol);
+      valid = result.isValid;
+      newErrors.amount = result.isValid ? undefined : result.error;
     }
-    return validateFormField(
-      amount,
-      (value) => validateTokenAmount(value, tokenDecimals, tokenSymbol),
-      errors,
-      "amount",
-    );
+
+    setErrors(newErrors);
+    return valid;
   }
 
   function validateAllFields(): boolean {

@@ -1,20 +1,18 @@
 import { List, Detail, Icon, Color } from "@raycast/api";
 import { BalancesViewProps } from "../types";
-import { useSolanaBalance, useSplTokenBalances, useSolanaPrice } from "../hooks";
+import { useSolanaBalance, useSplTokenBalances, useSolanaPrice, useGlobalQueryClient } from "../hooks";
 import { useTokenPrices } from "../hooks/useTokenPrices";
 import { formatTokenBalance, getTokenIcon } from "../utils/formatters";
 import { SendForm } from "./SendForm";
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { CommonActionPanelItems } from "./common/ActionPanelItems";
 
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
   if (seconds < 60) return "just now";
-  if (seconds < 120) return "1 minute ago";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-  if (seconds < 7200) return "1 hour ago";
-  return `${Math.floor(seconds / 3600)} hours ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} minute${Math.floor(seconds / 60) === 1 ? "" : "s"} ago`;
+  return `${Math.floor(seconds / 3600)} hour${Math.floor(seconds / 3600) === 1 ? "" : "s"} ago`;
 }
 
 function getPriceChangeIcon(priceChange: number): { source: Icon; tintColor: Color } | undefined {
@@ -27,15 +25,57 @@ function getPriceChangeIcon(priceChange: number): { source: Icon; tintColor: Col
 }
 
 export function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProps) {
-  const queryClient = useQueryClient();
+  const queryClient = useGlobalQueryClient();
   const { balance: solBalance, isLoading: isLoadingSol, error: errorSol } = useSolanaBalance(walletAddress);
   const { tokenBalances, isLoading: isLoadingTokens, error: errorTokens } = useSplTokenBalances(walletAddress);
   const { price: solPrice, priceChange24h, isLoading: isLoadingPrice } = useSolanaPrice();
   const { tokenPrices, isLoading: isLoadingTokenPrices } = useTokenPrices(tokenBalances);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  // Use a ref to track if this is the first load
+  const isFirstLoadRef = useRef(true);
+  // Force UI update every minute
+  const [, setForceUpdate] = useState(0);
+
+  // Update the time display every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setForceUpdate((prev) => prev + 1);
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Update lastRefreshed only on initial data load or manual refresh
+  useEffect(() => {
+    // Only update lastRefreshed on first successful load
+    if (!isLoadingSol && !isLoadingTokens && !isLoadingPrice && !isLoadingTokenPrices) {
+      if (isFirstLoadRef.current === true) {
+        isFirstLoadRef.current = false;
+        setLastRefreshed(new Date());
+      }
+    }
+  }, [isLoadingSol, isLoadingTokens, isLoadingPrice, isLoadingTokenPrices]);
 
   const isLoading = isLoadingSol || isLoadingTokens || isLoadingPrice || isLoadingTokenPrices;
   const combinedError = errorSol || errorTokens;
+
+  // Calculate total portfolio value
+  const totalPortfolioValue = useMemo(() => {
+    let total = 0;
+
+    // Add SOL value
+    if (solBalance !== null) {
+      total += solBalance * solPrice;
+    }
+
+    // Add token values
+    tokenBalances.forEach((token) => {
+      const { price } = tokenPrices[token.mintAddress] || { price: 0 };
+      total += token.uiAmount * price;
+    });
+
+    return total;
+  }, [solBalance, solPrice, tokenBalances, tokenPrices]);
 
   const handleRefresh = async () => {
     setLastRefreshed(new Date());
@@ -69,9 +109,10 @@ export function BalancesView({ walletAddress, onChangeWallet }: BalancesViewProp
   }
 
   const refreshStatus = isLoading ? "Refreshing..." : `Last updated ${formatTimeAgo(lastRefreshed)}`;
+  const navigationTitle = `Total: $${formatTokenBalance(totalPortfolioValue, 2)} • ${refreshStatus}`;
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="Search tokens..." navigationTitle={refreshStatus}>
+    <List isLoading={isLoading} searchBarPlaceholder="Search tokens..." navigationTitle={navigationTitle}>
       <List.Section title="Native Balance (SOL)" subtitle={refreshStatus}>
         {solBalance !== null && (
           <List.Item

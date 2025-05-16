@@ -39,3 +39,8 @@ export interface SolanaPriceData {
   price: number;
   priceChange24h: number;
 }
+
+export interface TokenPriceData {
+  price: number;
+  priceChange24h: number;
+}
