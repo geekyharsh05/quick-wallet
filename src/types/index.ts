@@ -46,6 +46,7 @@ export interface TokenPriceData {
   priceChange24h: number;
 }
 
+
 export interface WalletInfo {
   address: string;
   name?: string;
